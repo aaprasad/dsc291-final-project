@@ -9,11 +9,11 @@ import torch.nn.functional as F
 class LES(nn.Module):
     def __init__(self, sigma=2) -> None:
         super().__init__()
-        self.sigma = torch.tensor(sigma)
-        self.mu = torch.tensor(2.2e-16)
-        self.m = torch.tensor(2)
-        self.nev = torch.tensor(500)
-        self.gamma = torch.tensor(1e-6)
+        self.sigma = sigma
+        self.mu = 2.2e-16
+        self.m = 2
+        self.nev = 500
+        self.gamma = 1e-6
     
     def forward(self, x, y):
         x_eigvals = self._log_eigenvalues(self._heat_kernel(x))
