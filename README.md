@@ -1,8 +1,6 @@
-<<<<<<< HEAD
-# dsc291-final-project
-Final Project for Geometry of data
-=======
-# Log-Euclidean Signatures for Intrinsic Distances Between Unaligned Datasets
+# Final Project for DSC 291: Geometry of Data
+
+## Log-Euclidean Signatures for Intrinsic Distances Between Unaligned Datasets
 
 Python implementation of the LES distance and examples from the [paper](https://arxiv.org/abs/2202.01671). LES is an
 intrinsic geometric measure for comparing unaligned datasets of different dimensions and domains.
@@ -11,11 +9,11 @@ intrinsic geometric measure for comparing unaligned datasets of different dimens
 
 ## Prerequisites
 
-* [Numpy](https://numpy.org/install/)
-* [SciPy](https://scipy.org/install/)
-* [Matplotlib](https://matplotlib.org/stable/users/installing/index.html)
-* Optional packages for clustered data usage example: [scikit-learn](https://scikit-learn.org/stable/install.html)
-* Optional packages and repositories for comparisons with other algorithms:
+- [Numpy](https://numpy.org/install/)
+- [SciPy](https://scipy.org/install/)
+- [Matplotlib](https://matplotlib.org/stable/users/installing/index.html)
+- Optional packages for clustered data usage example: [scikit-learn](https://scikit-learn.org/stable/install.html)
+- Optional packages and repositories for comparisons with other algorithms:
     - [IMD](https://github.com/xgfs/imd) [1] - clone and place the `msid` folder in the current folder.
     - TDA: H0, H1 and H2 bottleneck distances, requires [persim](https://pypi.org/project/persim/)
       , [ripser](https://pypi.org/project/ripser/).
@@ -52,7 +50,7 @@ print('LES(x2{5 clusters}, x3{1 cluster})=',les_dist_comp(les_desc_x2, les_desc_
 
 ### Running the tori example (Figure 1 in the paper)
 
-```
+```bash
 python les/main_tori.py
 ```
 
@@ -67,4 +65,3 @@ run-times.
 [1] Tsitsulin et al., "The Shape of Data: Intrinsic Distance for Data Distributions", ICLR, 2019.\
 [2] Khrulkov and Oseledets, "Geometry score: A method for comparing generative adversarial networks", ICML, 2018.\
 [3] Peyré et al., "Gromov-Wasserstein averaging of kernel and distance matrices", ICML, 2016.
->>>>>>> 6bc6033 (initial commit)
