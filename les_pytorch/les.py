@@ -12,6 +12,7 @@ class LES(nn.Module):
         self.m = m
         self.nev = nev
         self.gamma = gamma
+        self._name = "LESLoss"
     
     def forward(self, x, y):
         no_batch_dim = len(x.shape) < 3
@@ -26,10 +27,15 @@ class LES(nn.Module):
         smallest_n = min(x_eigvals.shape[-1], y_eigvals.shape[-1])
         # (...)
         les_dist = tla.vector_norm(x_eigvals[..., :smallest_n] - y_eigvals[..., :smallest_n], dim=-1)
+<<<<<<< HEAD
         
         if no_batch_dim:
             les_dist.squeeze_()
             
+=======
+        # if no_batch_dim:
+        #     les_dist = ein.rearrange(les_dist, '1 n -> n')
+>>>>>>> f271cdffffbcc06176297eb89b74791e366cd0a7
         return les_dist
 
     def _heat_kernel(self, x):
@@ -74,4 +80,3 @@ class LES(nn.Module):
         eigvals = eigvals[..., -self.nev:]
         
         return torch.log(eigvals + self.gamma)
-    
