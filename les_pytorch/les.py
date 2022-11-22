@@ -24,10 +24,12 @@ class LES(nn.Module):
         # (... m)
         y_eigvals = self._log_eigenvalues(self._heat_kernel(y))
         smallest_n = min(x_eigvals.shape[-1], y_eigvals.shape[-1])
+        # (...)
         les_dist = tla.vector_norm(x_eigvals[..., :smallest_n] - y_eigvals[..., :smallest_n], dim=-1)
         
         if no_batch_dim:
-            les_dist = ein.rearrange(les_dist, '1 n -> n')
+            les_dist.squeeze_()
+            
         return les_dist
 
     def _heat_kernel(self, x):
