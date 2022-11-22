@@ -18,6 +18,13 @@ class LES(nn.Module):
     def forward(self, x, y):
         x_eigvals = self._log_eigenvalues(self._heat_kernel(x))
         y_eigvals = self._log_eigenvalues(self._heat_kernel(y))
+        if x_eigvals.shape != y_eigvals.shape:
+            nev = min(len(x_eigvals),len(y_eigvals))
+            # print(f"Mismatched number of eigenvalues: dropping {len(x_eigvals)-nev} eigenvalues from x and {len(y_eigvals)-nev} from y")
+            nev = min(len(x_eigvals),len(y_eigvals))
+            x_eigvals = x_eigvals[:nev]
+            y_eigvals = y_eigvals[:nev]
+            # print(x_eigvals.shape,y_eigvals.shape)
         return tla.vector_norm(x_eigvals - y_eigvals)
 
     def _heat_kernel(self, x):
