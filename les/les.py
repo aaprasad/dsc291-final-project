@@ -18,7 +18,7 @@ def _build_graph(data, sigma=2):
     """
 
     # -------------- Distance matrix and kernel computation: -------------
-    dist_mat = np.square(spat.distance.squareform(spat.distance.pdist(data)))
+    dist_mat = spat.distance.squareform(spat.distance.pdist(data, metric='sqeuclidean'))
     dist_mat = np.exp(-dist_mat / (sigma * np.median(dist_mat)))
 
     # ------------ Construction of the symmetric diffusion operator: ------------
@@ -64,7 +64,16 @@ def _compute_log_eigenvalues(h_op, nev=500, gamma=1e-6, tol=1e-8):
 
         y_nu = y + nu * omega
         b_mat = omega.T @ y_nu
-        c_mat = np.linalg.cholesky((b_mat + b_mat.T) / 2).T
+        
+        try:
+            c_mat = np.linalg.cholesky((b_mat + b_mat.T) / 2).T
+        except np.linalg.LinAlgError as error:
+            # input is theoretically guaranteed to be PSD, so this occurs due to numerical precision
+            eigvals = eigsh(h_op, k=nev, return_eigenvectors=False, tol=tol, sigma=1, which='LM')
+            eigvals = np.minimum(eigvals, 1e-8)
+            log_eigvals = np.log(eigvals + gamma)
+            return log_eigvals, eigvals
+        
         eigvals = spla.svdvals(y_nu @ np.linalg.inv(c_mat))
         eigvals = np.maximum(np.square(eigvals) - nu, 0)
         eigvals = np.sort(eigvals)[-nev:]
@@ -74,7 +83,7 @@ def _compute_log_eigenvalues(h_op, nev=500, gamma=1e-6, tol=1e-8):
     return log_eigvals, eigvals
 
 
-def les_desc_comp(data, sigma=2, nev=500, gamma=1e-6):
+def les_desc_comp(data, nev=500, gamma=1e-6, kernel_fn=None, kernel_fn_args=None):
     """
     Compute LES descriptors
 
@@ -84,8 +93,9 @@ def les_desc_comp(data, sigma=2, nev=500, gamma=1e-6):
     :param gamma: kernel regularization parameter
     :return: les_desc: les descriptor [1 x nev] of data
     """
-
-    h_op = _build_graph(data, sigma)
+    if kernel_fn is None: kernel_fn = _build_graph
+    if kernel_fn_args is None: kernel_fn_args = {}
+    h_op = kernel_fn(data, **kernel_fn_args)
     les_desc, _ = _compute_log_eigenvalues(h_op, nev, gamma)
     return les_desc
 

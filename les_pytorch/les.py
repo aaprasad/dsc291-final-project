@@ -2,7 +2,7 @@ import torch
 import torch.linalg as tla
 from torch import nn
 import einops as ein
-
+from typing import Callable
 
 def _heat_kernel(x: torch.Tensor, sigma=2):
     """Heat kernel construction (normalized RBF kernel)."""
@@ -30,7 +30,15 @@ def _log_eigenvalues(w: torch.Tensor, mu=2.2e-16, m=2, nev=500, gamma=1e-6) -> t
         # (... n m*nev)
         omega: torch.Tensor
         omega = torch.randn(*b_dims, n, m * nev, dtype=w.dtype)
-        omega, *_ = tla.qr(omega)
+        s: torch.Tensor # (... k) where k = min(n, m*nev)
+        u, s, vh = tla.svd(omega)
+        N, Mev = u.shape[-2], vh.shape[-1]
+        rcond: float = torch.finfo(s.dtype).eps * max(N, Mev)
+        # (...)
+        tol: torch.Tensor = torch.amax(s, dim=-1, keepdim=True) * rcond
+        # (... k) > (... 1) -sum-> (...) -min-> scalar
+        num = torch.sum(s > tol, dim=-1, dtype=torch.int).min()
+        omega = u[..., :num] # type: ignore
 
     # (... n n) = (... n n) @ (... n n)
     y = w @ omega
@@ -41,10 +49,16 @@ def _log_eigenvalues(w: torch.Tensor, mu=2.2e-16, m=2, nev=500, gamma=1e-6) -> t
     # (... n n) = (... n n) + (... 1 1) * (... n n)
     y_nu = y + nu * omega
     # (... n n) = (... n n) @ (... n n)
-    b = omega.transpose(-2, -1) @ y_nu
+    b = ein.rearrange(omega, '... i j -> ... j i') @ y_nu
     # (... n n)
     c: torch.Tensor
-    c = tla.cholesky((b + b.transpose(-2, -1)) / 2).transpose(-2, -1)
+    try:
+        # A + A^T is guaranteed to be symmetric!
+        c = tla.cholesky((b + ein.rearrange(b, '... i j -> ... j i')) / 2).transpose(-2, -1)
+    except tla.LinAlgError as error:
+        print(b)
+        raise error
+        
     # (... n)
     eigvals: torch.Tensor
     eigvals = tla.svdvals(y_nu @ tla.inv(c))
@@ -55,7 +69,7 @@ def _log_eigenvalues(w: torch.Tensor, mu=2.2e-16, m=2, nev=500, gamma=1e-6) -> t
     return torch.log(eigvals + gamma)
 
 
-def les_descriptor(x, sigma=2, mu=2.2e-16, m=2, nev=500, gamma=1e-6, kernel_fn=_heat_kernel) -> torch.Tensor:
+def les_descriptor(x, mu=2.2e-16, m=2, nev=500, gamma=1e-6, kernel_fn: Callable[..., torch.Tensor]= _heat_kernel, kernel_fn_args=None) -> torch.Tensor:
     """Compute the log-Euclidean descriptor(s) for a dataset.
 
     Parameters
@@ -73,15 +87,17 @@ def les_descriptor(x, sigma=2, mu=2.2e-16, m=2, nev=500, gamma=1e-6, kernel_fn=_
     gamma : float, optional
         by default 1e-6
     kernel_fn : Callable, optional
-        a function to 
+        kernel function that return the kernel matrix given a dataset
 
     Returns
     -------
     torch.Tensor
         Log-Euclidean descriptor(s) for the input.
     """
+    if kernel_fn_args is None: kernel_fn_args = {}
     x = torch.as_tensor(x)
-    desc = _log_eigenvalues(kernel_fn(x, sigma), mu, m, nev, gamma)
+    kernel = kernel_fn(x, **kernel_fn_args)
+    desc = _log_eigenvalues(kernel, mu, m, nev, gamma)
     return desc
     
 
